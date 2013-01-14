@@ -1,0 +1,123 @@
+<!DOCTYPE HTML>
+<html lang="EN" class="sb-html">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Search as You Type Example</title>
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+<script src="jquery.SAYT.js"></script>
+<!--
+<script src="../jquery.form.js"></script>
+<script src="../plugins/modified.js"></script>
+<script src="../plugins/confirm.js"></script>
+<script src="../plugins/placeholder.js"></script>
+<script src="../plugins/errors.js"></script>
+<script src="../plugins/date.js"></script>
+<script src="../contrib/dialog/jquery.dialog.js"></script>
+<script src="../contrib/calendar/jquery.calendar.js"></script>
+-->
+<style>
+
+body {
+    font: normal 11px sans-serif;
+}
+
+.field + .field {
+    margin-top: 5px;
+}
+
+.field label {
+    display: inline-block;
+    width: 80px;
+
+}
+
+input {
+    box-shadow: none;
+}
+
+.sayt-cont {
+    display: none;
+    position: absolute;
+    z-index: 2;
+    width: 200px;
+    right: 0;
+    top: 25px;
+    background-color: white;
+    
+    min-height: 24px;
+    max-height: 400px;
+    overflow-y: auto;
+
+    border: solid 1px #666666;
+    border-radius: 10px;
+    padding: 5px 0;
+    box-shadow: 0px 5px 5px rgba(0,0,0,0.5);
+}
+
+.sayt-results ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.sayt-results li {
+    display: block;
+    margin: 0;
+    padding: 5px 10px;
+    cursor: pointer;
+}
+
+.sayt-results li.selected,
+.sayt-results li:hover {
+    background-color: #5387f9;
+}
+
+.sayt-results h3 {
+    margin: 0;
+    font-size: 12px;
+}
+
+.sayt-results li:hover h3 {
+    color: white;
+}
+
+
+.sayt-no-results {
+    
+    display: block;
+    margin: 10px;
+    text-align: center;
+}
+</style>
+
+</head>
+<body>
+    
+<form id="test" name="test">
+
+<div class="field">
+    <label for="date">Find Country</label> 
+    <input id="country" name="country" type="text" placeholder="Enter Country">
+</div>
+
+
+<br />
+<button type="submit" disabled="disabled"> Submit </button>
+</form>
+
+<script>
+
+
+$(document).ready(function()
+{
+    var sayt = new SAYT("#country", {
+        "url" : "countries.php"
+    });
+});
+
+
+</script>
+
+</body>
+</html>
