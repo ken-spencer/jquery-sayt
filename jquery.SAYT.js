@@ -19,6 +19,11 @@ function SAYT(selector, options)
     }
 
     var input = this.input = $(selector);
+
+    if (this.input.length == 0) {
+        return;
+    }
+
     var sayt = this.sayt = $('<div class="sayt-cont"></div>')
     .appendTo(document.body)
     .prop("id", this.options.id)
@@ -48,6 +53,8 @@ function SAYT(selector, options)
         if (self.select == true) {
             self.request(true);
             input.removeClass('selected');
+        } else {
+            self.request();
         }
     })
     .on('keydown', function(evt)
@@ -59,7 +66,6 @@ function SAYT(selector, options)
             && self.results.length == 1
         ) {
             var result = self.results[0];
-            sw_sayt_select(field, result);
         }
     })
     .on('keydown', function(evt)
@@ -154,6 +160,7 @@ function SAYT(selector, options)
 
     sayt.on('mousedown', function()
     {
+	console.log('foo bar');
         prevent_clear = true;
     })
     .on('mouseleave', function(evt)
@@ -163,7 +170,6 @@ function SAYT(selector, options)
             sayt_clear();
         }
     });
-
 
     this.sayt.on('click', 'LI', function (evt)
     {
@@ -193,6 +199,9 @@ SAYT.prototype.request = function(all_records)
     var self = this;
 
     if (this.last == this.input.val()) {
+        if (self.sayt.children(".sayt-results").length) {
+            self.sayt.stop().fadeIn();
+        }
         return;
     }
         
@@ -235,7 +244,7 @@ SAYT.prototype.request = function(all_records)
                 clearTimeout(self._timeout);
             }
 
-            self.sayt.fadeIn();
+            self.sayt.stop().fadeIn();
             self.input.removeClass('selected');
                 
             self.sayt.append("<div class=\"sayt-results\"><ul></ul></div>");
@@ -247,21 +256,5 @@ SAYT.prototype.request = function(all_records)
             }
         }
     });
-}
-
-
-function sw_sayt_select(field, result)
-{
-    var hidden = document.getElementById(field.id + '-hidden');
-    hidden.value = result.id;
-    field.value = result.title;
-    addClass(field, 'selected');
-    dispatchEvent(field, 'change');
-
-    if (hidden.dependent) {
-        hidden.dependent.value = '';
-        hidden.dependent.disabled = false;
-    }
-
 }
 
