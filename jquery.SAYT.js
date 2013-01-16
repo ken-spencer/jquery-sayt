@@ -11,7 +11,9 @@ function SAYT(selector, options, selectAction)
         "fieldName" : "keywords",
         "data" : {},
         "id" : "sayt-cont",
-        "showNoResults" : true
+        "showNoResults" : true,
+        'inputOnSelect' : 'set', // set, empty or keep
+        "populateOnEmpty" : false
     }
 
     if (options) {
@@ -32,7 +34,6 @@ function SAYT(selector, options, selectAction)
     var self = this;
     this.selectAction = selectAction;
     this.results = [];
-    this.limit = 5;
     this.selected = null;
     this.last = '';
     this._xhr = null;
@@ -89,7 +90,7 @@ function SAYT(selector, options, selectAction)
         if (enter) {
             if (selected.length) {
                 self.onselect(selected);
-                sayt_clear();
+                self.clear();
             } else {
                 return;
             }
@@ -152,7 +153,7 @@ function SAYT(selector, options, selectAction)
         if (this.value.length || self.select == true) {
             self.request();
         } else {
-            sayt_clear();
+            self.clear();
         }
 */
     })
@@ -169,15 +170,10 @@ function SAYT(selector, options, selectAction)
         } 
 
         if (prevent_clear == false) {
-            sayt_clear();
+            self.clear();
         }
         prevent_clear = false;
     });
-
-    var sayt_clear = function()
-    {
-        sayt.stop(true, true).fadeOut();
-    }
 
     sayt.on('mousedown', function()
     {
@@ -188,7 +184,7 @@ function SAYT(selector, options, selectAction)
     {
         if (prevent_clear == true) {
             prevent_clear = false;
-            sayt_clear();
+            self.clear();
         }
     });
 */
@@ -203,9 +199,14 @@ function SAYT(selector, options, selectAction)
     {
         if (evt.button == 0) {
             self.results = [];
-            sayt_clear();
+            self.clear();
         }
     });
+}
+
+SAYT.prototype.clear = function()
+{
+    this.sayt.stop(true, true).fadeOut();
 }
 
 /* Set the position of the SAYT results relative to the field
@@ -232,8 +233,17 @@ SAYT.prototype.onselect = function(li)
         }
     }
 
-    this.input.val(result.title);
-    this.lastValue = result.title;
+    switch (this.options.inputOnSelect) {
+    case 'set':
+        this.input.val(result.title);
+        this.lastValue = result.title;
+        break;
+    case 'empty':
+        this.input.val('');
+        this.lastValue = '';
+        break;
+    }
+
     this.input.addClass('sayt-has-value');
 }
 
@@ -242,6 +252,11 @@ SAYT.prototype.onselect = function(li)
 SAYT.prototype.request = function()
 {
     var self = this;
+
+    if (this.options.populateOnEmpty == false && this.input.val().length == 0) {
+        this.clear();
+        return;
+    }
 
     if (this.last == this.input.val()) {
         if (self.sayt.children(".sayt-results").length) {
@@ -273,17 +288,20 @@ SAYT.prototype.request = function()
      	self.results = data.results;
             
         self.seletec = null;
-        self.sayt.children().remove();
-      //  self.sayt.fadeIn();
             
         if (self.results.length == 0) {
-            self.sayt.append("<div class=\"sayt-no-results\">No Results</div>");
-            self._timeout = setTimeout(function()
-            {
-                self._timeout = null;
-                self.sayt.stop(true, true).fadeOut();
+            if (self.options.showNoResults) {
+                self.sayt.children().remove();
+                self.sayt.append("<div class=\"sayt-no-results\">No Results</div>");
+                self._timeout = setTimeout(function()
+                {
+                    self._timeout = null;
+                    self.sayt.stop(true, true).fadeOut();
             
-            }, 1000);
+                }, 1000);
+            } else {
+                self.clear();
+            }
         } else {
             if (self._timeout) {
                 clearTimeout(self._timeout);
@@ -292,6 +310,7 @@ SAYT.prototype.request = function()
             self.sayt.stop(true, true).fadeIn();
             self.input.removeClass('sayt-has-value');
                 
+            self.sayt.children().remove();
             self.sayt.append("<div class=\"sayt-results\"><ul></ul></div>");
             var ul = $("ul", sayt);
                 
