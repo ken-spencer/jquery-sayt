@@ -75,7 +75,7 @@ $countries = array(
     "EH" => "Western Sahara",
 );
 
-$list = preg_grep("/" . preg_quote($_POST['keywords']) . "/", $countries);
+$list = preg_grep("/" . preg_quote($_POST['keywords']) . "/i", $countries);
 
 $results = array();
 foreach ($list as $key => $value) {

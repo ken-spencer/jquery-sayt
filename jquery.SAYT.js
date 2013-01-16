@@ -4,7 +4,7 @@
 /*
 *   A click event can be attached to this object using jQuery to handle what happens when clicked
 */
-function SAYT(selector, options)
+function SAYT(selector, options, selectAction)
 {
     this.options = {
         "url" : null,
@@ -19,10 +19,25 @@ function SAYT(selector, options)
     }
 
     var input = this.input = $(selector);
+    input.prop('autocomplete', false);
+
+    if (input.prop('defaultValue').length) {
+        input.addClass('sayt-has-value');
+    }
 
     if (this.input.length == 0) {
         return;
     }
+
+    var self = this;
+    this.selectAction = selectAction;
+    this.results = [];
+    this.limit = 5;
+    this.selected = null;
+    this.last = '';
+    this._xhr = null;
+    this.lastValue = input.prop('defaultValue');
+    var prevent_clear = false; // Prevent clear on blur when clicking on SAYT
 
     var sayt = this.sayt = $('<div class="sayt-cont"></div>')
     .appendTo(document.body)
@@ -32,13 +47,6 @@ function SAYT(selector, options)
         "display" : "none"
     });
 
-    var self = this;
-    this.results = [];
-    this.limit = 5;
-    this.select = false; // Operate as a select, or a search
-    this.selected = null;
-    this.last = '';
-    this._xhr = null;
 
     /* Set the position of the results dialog to below the input
     */
@@ -50,22 +58,19 @@ function SAYT(selector, options)
 
     input.on('focus', function(evt)
     {
-        if (self.select == true) {
-            self.request(true);
-            input.removeClass('selected');
-        } else {
+        if (!input.hasClass('sayt-has-value')) {
             self.request();
         }
     })
     .on('keydown', function(evt)
     {
+        // If only one result, select it with a tab
         if (
-            self.select 
-            && evt.keyCode == 9 // Tab was pressed
-            && input.hasClass('selected') == false 
+            evt.keyCode == 9 // Tab was pressed
+            && input.hasClass('sayt-has-value') == false 
             && self.results.length == 1
         ) {
-            var result = self.results[0];
+            self.onselect(self.sayt.find('li')[0]);
         }
     })
     .on('keydown', function(evt)
@@ -80,11 +85,11 @@ function SAYT(selector, options)
             return;
         }
 
-        var selected = $('.selected', sayt);
+        var selected = $('.sayt-selected', sayt);
         if (enter) {
             if (selected.length) {
-                selected.trigger('click');        
-                selected.trigger('mouseup');        
+                self.onselect(selected);
+                sayt_clear();
             } else {
                 return;
             }
@@ -105,8 +110,8 @@ function SAYT(selector, options)
             self.selected = selected.prev().length ? selected.prev() : selected.last(); 
         }
 
-        selected.removeClass('selected');
-        $(self.selected).addClass('selected');
+        self.sayt.find('.sayt-selected').removeClass('sayt-selected');
+        $(self.selected).addClass('sayt-selected');
 
         var height = parseInt(sayt.css('max-height') || parseInt(sayt.css('height')));
 
@@ -120,12 +125,21 @@ function SAYT(selector, options)
     {
         var code = evt.keyCode;
         
+        if (this.value == self.lastValue) {
+            return;        
+        }
+
+        self.lastValue = this.value;
+    
+        self.request();
+/*
         if (
             code == 27 
             || code == 16 
             || code == 17 
             || code == 18 
             || code == 20
+            || code == 9 // tab
             || code == 38 // up
             || code == 40 // down
             || code == 13 // enter
@@ -133,36 +147,43 @@ function SAYT(selector, options)
             return;
         }
 
+
+
         if (this.value.length || self.select == true) {
             self.request();
         } else {
             sayt_clear();
         }
+*/
     })
-    .on('blur', function()
+    .on('blur', function(evt)
     {
-        if (self.select && this.value.length && this.value == this.defaultValue) {
-            input.addClass('selected');
+        var list = self.sayt.find('li');
+        
+        // Selection matches only choice
+        if (this.value && list.length && list.length == 1) {
+            var result = list.data('result');
+            if (result.title.toLowerCase() == this.value.toLowerCase()) {
+                self.onselect(list[0]);
+            }
+        } 
+
+        if (prevent_clear == false) {
+            sayt_clear();
         }
-        sayt_clear();
+        prevent_clear = false;
     });
 
-    var prevent_clear = false;
     var sayt_clear = function()
     {
-        if (prevent_clear == true) {
-            return;
-        }
-
-        sayt.stop();
-        sayt.fadeOut();
+        sayt.stop(true, true).fadeOut();
     }
 
     sayt.on('mousedown', function()
     {
-	console.log('foo bar');
         prevent_clear = true;
-    })
+    });
+/*
     .on('mouseleave', function(evt)
     {
         if (prevent_clear == true) {
@@ -170,20 +191,25 @@ function SAYT(selector, options)
             sayt_clear();
         }
     });
+*/
 
     this.sayt.on('click', 'LI', function (evt)
     {
-        $(self).trigger('click', this);
+        if (evt.button == 0) {
+            self.onselect(this);
+        }
     })
-    .on('mouseup', function()
+    .on('mouseup', function(evt)
     {
-        input.addClass('selected');
-        self.results = [];
-        prevent_clear = false;
-        sayt_clear();
+        if (evt.button == 0) {
+            self.results = [];
+            sayt_clear();
+        }
     });
 }
 
+/* Set the position of the SAYT results relative to the field
+*/
 SAYT.prototype.setPosition = function(all_records)
 {
     var pos = this.input.offset();
@@ -194,13 +220,32 @@ SAYT.prototype.setPosition = function(all_records)
     });
 }
 
-SAYT.prototype.request = function(all_records)
+/* Process what happens when an item form the list is selected
+*/
+SAYT.prototype.onselect = function(li)
+{
+    var result = $(li).data('result');
+
+    if (this.selectAction) {
+        if (!this.selectAction.call(this, li, result)) {
+            return;
+        }
+    }
+
+    this.input.val(result.title);
+    this.lastValue = result.title;
+    this.input.addClass('sayt-has-value');
+}
+
+/* Fetch results from the server
+*/
+SAYT.prototype.request = function()
 {
     var self = this;
 
     if (this.last == this.input.val()) {
         if (self.sayt.children(".sayt-results").length) {
-            self.sayt.stop().fadeIn();
+            self.sayt.stop(true, true).fadeIn();
         }
         return;
     }
@@ -212,7 +257,7 @@ SAYT.prototype.request = function(all_records)
     }
         
     var post = this.options.data || {};
-    post[this.options.fieldName] = all_records == true ? '' : this.input.val();
+    post[this.options.fieldName] = this.input.val();
 
     this._xhr = $.post(this.options.url, post)
     .success(function(data)
@@ -225,18 +270,18 @@ SAYT.prototype.request = function(all_records)
         var sayt = self.sayt;
         var input = self.input;
         
-        var results = data.results;
+     	self.results = data.results;
             
         self.seletec = null;
         self.sayt.children().remove();
       //  self.sayt.fadeIn();
             
-        if (results.length == 0) {
+        if (self.results.length == 0) {
             self.sayt.append("<div class=\"sayt-no-results\">No Results</div>");
             self._timeout = setTimeout(function()
             {
                 self._timeout = null;
-                self.sayt.stop().fadeOut();
+                self.sayt.stop(true, true).fadeOut();
             
             }, 1000);
         } else {
@@ -244,13 +289,13 @@ SAYT.prototype.request = function(all_records)
                 clearTimeout(self._timeout);
             }
 
-            self.sayt.stop().fadeIn();
-            self.input.removeClass('selected');
+            self.sayt.stop(true, true).fadeIn();
+            self.input.removeClass('sayt-has-value');
                 
             self.sayt.append("<div class=\"sayt-results\"><ul></ul></div>");
             var ul = $("ul", sayt);
                 
-            for (var i = 0, result; result = results[i]; i++) {
+            for (var i = 0, result; result = self.results[i]; i++) {
                 ul.append("<li>" + result.title +  "</li>");
                 ul.children().last().data('result', result);
             }
