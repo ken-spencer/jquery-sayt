@@ -21,15 +21,16 @@ function SAYT(selector, options, selectAction)
     }
 
     var input = this.input = $(selector);
+    if (this.input.length == 0) {
+        return;
+    }
+
     input.prop('autocomplete', false);
 
     if (input.prop('defaultValue').length) {
         input.addClass('sayt-has-value');
     }
 
-    if (this.input.length == 0) {
-        return;
-    }
 
     var self = this;
     this.selectAction = selectAction;
