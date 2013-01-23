@@ -60,6 +60,7 @@ function SAYT(selector, options, selectAction)
 
     input.on('focus', function(evt)
     {
+        self.setPosition();
         if (!input.hasClass('sayt-has-value')) {
             self.request();
         }
@@ -215,7 +216,6 @@ SAYT.prototype.clear = function()
 SAYT.prototype.setPosition = function(all_records)
 {
     var pos = this.input.offset();
-    
     this.sayt.css({
         "top" : pos.top + this.input.outerHeight(),
         "left" : pos.left
