@@ -183,25 +183,16 @@ function SAYT(selector, options, selectAction)
     {
         prevent_clear = true;
     });
-/*
-    .on('mouseleave', function(evt)
-    {
-        if (prevent_clear == true) {
-            prevent_clear = false;
-            self.clear();
-        }
-    });
-*/
 
     this.sayt.on('click', 'LI', function (evt)
     {
-        if (evt.button == 0) {
+        if (evt.button != 2) {
             self.onselect(this);
         }
     })
     .on('mouseup', function(evt)
     {
-        if (evt.button == 0) {
+        if (evt.button != 2) {
             self.results = [];
             self.clear();
         }
