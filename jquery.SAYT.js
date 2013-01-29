@@ -162,7 +162,9 @@ function SAYT(selector, options, selectAction)
     .on('blur', function(evt)
     {
         var list = self.sayt.find('li');
-        
+       
+        $(this).addClass('user-interacted')        
+
         // Selection matches only choice
         if (this.value && list.length && list.length == 1) {
             var result = list.data('result');
