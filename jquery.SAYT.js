@@ -25,7 +25,7 @@ function SAYT(selector, options, selectAction)
         return;
     }
 
-    input.prop('autocomplete', false);
+    input.prop('autocomplete', 'off');
 
     if (input.prop('defaultValue').length) {
         input.addClass('sayt-has-value');
